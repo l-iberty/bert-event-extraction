@@ -1,6 +1,7 @@
 import numpy as np
+import math
 
-from consts import NONE, PAD
+from consts import NONE, PAD, TRIGGERS_WEIGHTS, ARGUMENTS_WEIGHTS
 
 
 def build_vocab(labels, BIO_tagging=True):
@@ -15,6 +16,39 @@ def build_vocab(labels, BIO_tagging=True):
     idx2label = {idx: tag for idx, tag in enumerate(all_labels)}
 
     return all_labels, label2idx, idx2label
+
+
+def get_trigger_loss_weights(triggers):
+    if triggers[2].startswith('B-'):
+        w = TRIGGERS_WEIGHTS[0:2]
+        for i in range(2, len(TRIGGERS_WEIGHTS)):
+            w.append(TRIGGERS_WEIGHTS[i])
+            w.append(TRIGGERS_WEIGHTS[i])
+    else:
+        w = TRIGGERS_WEIGHTS
+
+    w = [math.sqrt(x) for x in w]
+    s = sum(w)
+    w = [x / s for x in w]
+    w = [x * len(w) * 50 for x in w]
+    return w
+
+
+def get_arg_loss_weights(arguments):
+    if arguments[2].startswith('B-'):
+        nw = ARGUMENTS_WEIGHTS[0:2]
+        for i in range(2, len(ARGUMENTS_WEIGHTS)):
+            nw.append(ARGUMENTS_WEIGHTS[i])
+            nw.append(ARGUMENTS_WEIGHTS[i])
+    else:
+        nw = ARGUMENTS_WEIGHTS
+
+    pw = [1 - x for x in nw]
+    pw = [math.sqrt(x) for x in pw]
+    nw = [math.sqrt(x) for x in nw]
+    sw = [p + n for p, n in zip(pw, nw)]
+    pw = [p / s for p, s in zip(pw, sw)]
+    return pw
 
 
 def calc_metric(y_true, y_pred):

@@ -9,11 +9,11 @@ from torch.utils import data
 from model import Net
 
 from data_load import ACE2005Dataset, pad, all_triggers, all_entities, all_postags, all_arguments, tokenizer
-from utils import report_to_telegram
+from utils import report_to_telegram, get_trigger_loss_weights, get_arg_loss_weights
 from eval import eval
 
 
-def train(model, iterator, optimizer, criterion):
+def train(model, iterator, optimizer, trigger_criterion, argument_criterion):
     model.train()
     for i, batch in enumerate(iterator):
         tokens_x_2d, entities_x_3d, postags_x_2d, triggers_y_2d, arguments_2d, seqlens_1d, head_indexes_2d, words_2d, triggers_2d = batch
@@ -23,11 +23,11 @@ def train(model, iterator, optimizer, criterion):
                                                                                                                       triggers_y_2d=triggers_y_2d, arguments_2d=arguments_2d)
 
         trigger_logits = trigger_logits.view(-1, trigger_logits.shape[-1])
-        trigger_loss = criterion(trigger_logits, triggers_y_2d.view(-1))
+        trigger_loss = trigger_criterion(trigger_logits, triggers_y_2d.view(-1))
 
         if len(argument_keys) > 0:
             argument_logits, arguments_y_1d, argument_hat_1d, argument_hat_2d = model.module.predict_arguments(argument_hidden, argument_keys, arguments_2d)
-            argument_loss = criterion(argument_logits, arguments_y_1d)
+            argument_loss = argument_criterion(torch.sigmoid(argument_logits), arguments_y_1d)
             loss = trigger_loss + 2 * argument_loss
             if i == 0:
                 print("=====sanity check for arguments======")
@@ -98,7 +98,7 @@ if __name__ == "__main__":
     train_iter = data.DataLoader(dataset=train_dataset,
                                  batch_size=hp.batch_size,
                                  shuffle=False,
-                                 sampler=sampler,
+                                 sampler=sampler, # 去掉sampler
                                  num_workers=4,
                                  collate_fn=pad)
     dev_iter = data.DataLoader(dataset=dev_dataset,
@@ -115,13 +115,16 @@ if __name__ == "__main__":
     optimizer = optim.Adam(model.parameters(), lr=hp.lr)
     # optimizer = optim.Adadelta(model.parameters(), lr=1.0, weight_decay=1e-2)
 
-    criterion = nn.CrossEntropyLoss(ignore_index=0)
+    trigger_criterion = nn.CrossEntropyLoss(
+        weight=torch.FloatTensor(get_trigger_loss_weights(all_triggers)), ignore_index=0)
+    argument_criterion = nn.CrossEntropyLoss(
+        weight=torch.FloatTensor(get_arg_loss_weights(all_arguments)), ignore_index=0)
 
     if not os.path.exists(hp.logdir):
         os.makedirs(hp.logdir)
 
     for epoch in range(1, hp.n_epochs + 1):
-        train(model, train_iter, optimizer, criterion)
+        train(model, train_iter, optimizer, trigger_criterion, argument_criterion)
 
         fname = os.path.join(hp.logdir, str(epoch))
         print(f"=========eval dev at epoch={epoch}=========")

@@ -63,8 +63,8 @@ class ACE2005Dataset(data.Dataset):
                     arguments['events'][event_key] = []
                     for argument in event_mention['arguments']:
                         role = argument['role']
-                        if role.startswith('Time'):
-                            role = role.split('-')[0]
+                        #if role.startswith('Time'): # 因为原本的代码中把所有以"Time-"开头的role统一用"Time"代替, 而我们现在使用的原始的role, 所以把这两行去掉
+                        #    role = role.split('-')[0]
                         arguments['events'][event_key].append((argument['start'], argument['end'], argument2idx[role]))
 
                 self.sent_li.append([CLS] + words + [SEP])
