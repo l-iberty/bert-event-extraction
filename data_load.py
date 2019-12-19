@@ -77,7 +77,8 @@ class ACE2005Dataset(data.Dataset):
         return len(self.sent_li)
 
     def __getitem__(self, idx):
-        words, entities, postags, triggers, arguments = self.sent_li[idx], self.entities_li[idx], self.postags_li[idx], self.triggers_li[idx], self.arguments_li[idx]
+        words, entities, postags, triggers, arguments = \
+            self.sent_li[idx], self.entities_li[idx], self.postags_li[idx], self.triggers_li[idx], self.arguments_li[idx]
 
         # We give credits only to the first piece.
         tokens_x, entities_x, postags_x, is_heads = [], [], [], []

@@ -16,17 +16,32 @@ from eval import eval
 def train(model, iterator, optimizer, trigger_criterion, argument_criterion):
     model.train()
     for i, batch in enumerate(iterator):
-        tokens_x_2d, entities_x_3d, postags_x_2d, triggers_y_2d, arguments_2d, seqlens_1d, head_indexes_2d, words_2d, triggers_2d = batch
+        tokens_x_2d, \
+        entities_x_3d, \
+        postags_x_2d, \
+        triggers_y_2d, \
+        arguments_2d, \
+        seqlens_1d, \
+        head_indexes_2d, \
+        words_2d, \
+        triggers_2d = batch
+
         optimizer.zero_grad()
-        trigger_logits, triggers_y_2d, trigger_hat_2d, argument_hidden, argument_keys = model.module.predict_triggers(tokens_x_2d=tokens_x_2d, entities_x_3d=entities_x_3d,
-                                                                                                                      postags_x_2d=postags_x_2d, head_indexes_2d=head_indexes_2d,
-                                                                                                                      triggers_y_2d=triggers_y_2d, arguments_2d=arguments_2d)
+
+        trigger_logits, \
+        triggers_y_2d, \
+        trigger_hat_2d, \
+        argument_hidden, \
+        argument_keys = model.module.predict_triggers(tokens_x_2d=tokens_x_2d, entities_x_3d=entities_x_3d,
+                                                      postags_x_2d=postags_x_2d, head_indexes_2d=head_indexes_2d,
+                                                      triggers_y_2d=triggers_y_2d, arguments_2d=arguments_2d)
 
         trigger_logits = trigger_logits.view(-1, trigger_logits.shape[-1])
         trigger_loss = trigger_criterion(trigger_logits, triggers_y_2d.view(-1))
 
         if len(argument_keys) > 0:
-            argument_logits, arguments_y_1d, argument_hat_1d, argument_hat_2d = model.module.predict_arguments(argument_hidden, argument_keys, arguments_2d)
+            argument_logits, arguments_y_1d, argument_hat_1d, argument_hat_2d = model.module.predict_arguments(
+                argument_hidden, argument_keys, arguments_2d)
             argument_loss = argument_criterion(torch.sigmoid(argument_logits), arguments_y_1d)
             loss = trigger_loss + 2 * argument_loss
             if i == 0:
@@ -98,7 +113,7 @@ if __name__ == "__main__":
     train_iter = data.DataLoader(dataset=train_dataset,
                                  batch_size=hp.batch_size,
                                  shuffle=False,
-                                 sampler=sampler, # 去掉sampler
+                                 sampler=sampler,
                                  num_workers=4,
                                  collate_fn=pad)
     dev_iter = data.DataLoader(dataset=dev_dataset,
@@ -134,8 +149,10 @@ if __name__ == "__main__":
         metric_test = eval(model, test_iter, fname + '_test')
 
         if hp.telegram_bot_token:
-            report_to_telegram('[epoch {}] dev\n{}'.format(epoch, metric_dev), hp.telegram_bot_token, hp.telegram_chat_id)
-            report_to_telegram('[epoch {}] test\n{}'.format(epoch, metric_test), hp.telegram_bot_token, hp.telegram_chat_id)
+            report_to_telegram('[epoch {}] dev\n{}'.format(epoch, metric_dev), hp.telegram_bot_token,
+                               hp.telegram_chat_id)
+            report_to_telegram('[epoch {}] test\n{}'.format(epoch, metric_test), hp.telegram_bot_token,
+                               hp.telegram_chat_id)
 
         torch.save(model, "latest_model.pt")
         # print(f"weights were saved to {fname}.pt")
