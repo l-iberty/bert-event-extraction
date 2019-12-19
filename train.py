@@ -126,9 +126,9 @@ if __name__ == "__main__":
     # optimizer = optim.Adadelta(model.parameters(), lr=1.0, weight_decay=1e-2)
 
     trigger_criterion = nn.CrossEntropyLoss(
-        weight=torch.FloatTensor(get_trigger_loss_weights(all_triggers)), ignore_index=0)
+        weight=torch.FloatTensor(get_trigger_loss_weights(all_triggers)).to(torch.device(device)), ignore_index=0)
     argument_criterion = nn.CrossEntropyLoss(
-        weight=torch.FloatTensor(get_arg_loss_weights(all_arguments)), ignore_index=0)
+        weight=torch.FloatTensor(get_arg_loss_weights(all_arguments)).to(torch.device(device)), ignore_index=0)
 
     if not os.path.exists(hp.logdir):
         os.makedirs(hp.logdir)
