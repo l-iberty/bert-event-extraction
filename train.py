@@ -16,25 +16,20 @@ from eval import eval
 def train(model, iterator, optimizer, trigger_criterion, argument_criterion):
     model.train()
     for i, batch in enumerate(iterator):
-        tokens_x_2d, \
-        entities_x_3d, \
-        postags_x_2d, \
-        triggers_y_2d, \
-        arguments_2d, \
-        seqlens_1d, \
-        head_indexes_2d, \
-        words_2d, \
-        triggers_2d = batch
+        all_tokens_2d, tokens_x_2d, \
+        entities_x_3d, postags_x_2d, \
+        triggers_y_2d, arguments_2d, \
+        seqlens_1d, head_indexes_2d, \
+        words_2d, triggers_2d = batch
 
         optimizer.zero_grad()
 
-        trigger_logits, \
-        triggers_y_2d, \
-        trigger_hat_2d, \
-        argument_hidden, \
+        trigger_logits, triggers_y_2d, \
+        trigger_hat_2d, argument_hidden, \
         argument_keys = model.module.predict_triggers(tokens_x_2d=tokens_x_2d, entities_x_3d=entities_x_3d,
                                                       postags_x_2d=postags_x_2d, head_indexes_2d=head_indexes_2d,
-                                                      triggers_y_2d=triggers_y_2d, arguments_2d=arguments_2d)
+                                                      triggers_y_2d=triggers_y_2d, arguments_2d=arguments_2d,
+                                                      all_tokens_2d=all_tokens_2d, words_2d=words_2d)
 
         trigger_logits = trigger_logits.view(-1, trigger_logits.shape[-1])
         trigger_loss = trigger_criterion(trigger_logits, triggers_y_2d.view(-1))
@@ -114,17 +109,17 @@ if __name__ == "__main__":
                                  batch_size=hp.batch_size,
                                  shuffle=False,
                                  sampler=sampler,
-                                 num_workers=4,
+                                 num_workers=0,
                                  collate_fn=pad)
     dev_iter = data.DataLoader(dataset=dev_dataset,
                                batch_size=hp.batch_size,
                                shuffle=False,
-                               num_workers=4,
+                               num_workers=0,
                                collate_fn=pad)
     test_iter = data.DataLoader(dataset=test_dataset,
                                 batch_size=hp.batch_size,
                                 shuffle=False,
-                                num_workers=4,
+                                num_workers=0,
                                 collate_fn=pad)
 
     optimizer = optim.Adam(model.parameters(), lr=hp.lr)

@@ -37,7 +37,8 @@ class ACE2005Dataset(data.Dataset):
                 }
 
                 for entity_mention in item['golden-entity-mentions']:
-                    arguments['candidates'].append((entity_mention['start'], entity_mention['end'], entity_mention['entity-type']))
+                    arguments['candidates'].append(
+                        (entity_mention['start'], entity_mention['end'], entity_mention['entity-type']))
 
                     for i in range(entity_mention['start'], entity_mention['end']):
                         entity_type = entity_mention['entity-type']
@@ -59,11 +60,12 @@ class ACE2005Dataset(data.Dataset):
                         else:
                             triggers[i] = 'I-{}'.format(trigger_type)
 
-                    event_key = (event_mention['trigger']['start'], event_mention['trigger']['end'], event_mention['event_type'])
+                    event_key = (
+                        event_mention['trigger']['start'], event_mention['trigger']['end'], event_mention['event_type'])
                     arguments['events'][event_key] = []
                     for argument in event_mention['arguments']:
                         role = argument['role']
-                        #if role.startswith('Time'): # 因为原本的代码中把所有以"Time-"开头的role统一用"Time"代替, 而我们现在使用的原始的role, 所以把这两行去掉
+                        # if role.startswith('Time'): # 因为原本的代码中把所有以"Time-"开头的role统一用"Time"代替, 而我们现在使用的原始的role, 所以把这两行去掉
                         #    role = role.split('-')[0]
                         arguments['events'][event_key].append((argument['start'], argument['end'], argument2idx[role]))
 
@@ -81,9 +83,10 @@ class ACE2005Dataset(data.Dataset):
             self.sent_li[idx], self.entities_li[idx], self.postags_li[idx], self.triggers_li[idx], self.arguments_li[idx]
 
         # We give credits only to the first piece.
-        tokens_x, entities_x, postags_x, is_heads = [], [], [], []
+        all_tokens, tokens_x, entities_x, postags_x, is_heads = [], [], [], [], []
         for w, e, p in zip(words, entities, postags):
             tokens = tokenizer.tokenize(w) if w not in [CLS, SEP] else [w]
+            all_tokens.extend(tokens)
             tokens_xx = tokenizer.convert_tokens_to_ids(tokens)
 
             if w in [CLS, SEP]:
@@ -106,7 +109,7 @@ class ACE2005Dataset(data.Dataset):
 
         seqlen = len(tokens_x)
 
-        return tokens_x, entities_x, postags_x, triggers_y, arguments, seqlen, head_indexes, words, triggers
+        return all_tokens, tokens_x, entities_x, postags_x, triggers_y, arguments, seqlen, head_indexes, words, triggers
 
     def get_samples_weight(self):
         samples_weight = []
@@ -124,7 +127,12 @@ class ACE2005Dataset(data.Dataset):
 
 
 def pad(batch):
-    tokens_x_2d, entities_x_3d, postags_x_2d, triggers_y_2d, arguments_2d, seqlens_1d, head_indexes_2d, words_2d, triggers_2d = list(map(list, zip(*batch)))
+    all_tokens_2d, tokens_x_2d, \
+    entities_x_3d, postags_x_2d, \
+    triggers_y_2d, arguments_2d, \
+    seqlens_1d, head_indexes_2d, \
+    words_2d, triggers_2d = list(map(list, zip(*batch)))
+
     maxlen = np.array(seqlens_1d).max()
 
     for i in range(len(tokens_x_2d)):
@@ -134,7 +142,8 @@ def pad(batch):
         triggers_y_2d[i] = triggers_y_2d[i] + [trigger2idx[PAD]] * (maxlen - len(triggers_y_2d[i]))
         entities_x_3d[i] = entities_x_3d[i] + [[entity2idx[PAD]] for _ in range(maxlen - len(entities_x_3d[i]))]
 
-    return tokens_x_2d, entities_x_3d, postags_x_2d, \
+    return all_tokens_2d, tokens_x_2d, \
+           entities_x_3d, postags_x_2d, \
            triggers_y_2d, arguments_2d, \
            seqlens_1d, head_indexes_2d, \
            words_2d, triggers_2d
