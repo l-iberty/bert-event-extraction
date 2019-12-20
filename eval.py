@@ -27,7 +27,8 @@ def eval(model, iterator, fname):
             trigger_hat_2d, argument_hidden, \
             argument_keys = model.module.predict_triggers(tokens_x_2d=tokens_x_2d, entities_x_3d=entities_x_3d,
                                                           postags_x_2d=postags_x_2d, head_indexes_2d=head_indexes_2d,
-                                                          triggers_y_2d=triggers_y_2d, arguments_2d=arguments_2d)
+                                                          triggers_y_2d=triggers_y_2d, arguments_2d=arguments_2d,
+                                                          all_tokens_2d=all_tokens_2d, words_2d=words_2d)
 
             words_all.extend(words_2d)
             triggers_all.extend(triggers_2d)
