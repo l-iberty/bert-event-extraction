@@ -79,7 +79,7 @@ class Net(nn.Module):
             self.bert.train()
             encoded_layers, _ = self.bert(tokens_x_2d)
             output_layer = encoded_layers[-1]
-            dropout = nn.Dropout(0.1)
+            dropout = nn.Dropout(0.5)
             output_layer = dropout(output_layer)
         else:
             self.bert.eval()
@@ -109,6 +109,7 @@ class Net(nn.Module):
         trigger_hat_2d = trigger_logits.argmax(-1)  # 返回最后一个维度最大值的索引
 
         argument_hidden, argument_keys = [], []
+        '''先不做arguments
         for i in range(batch_size):
             candidates = arguments_2d[i]['candidates']
             golden_entity_tensors = {}
@@ -127,6 +128,7 @@ class Net(nn.Module):
 
                     argument_hidden.append(torch.cat([event_tensor, entity_tensor]))
                     argument_keys.append((i, t_start, t_end, t_type_str, e_start, e_end, e_type_str))
+        '''
 
         return trigger_logits, triggers_y_2d, trigger_hat_2d, argument_hidden, argument_keys
 
@@ -151,8 +153,7 @@ class Net(nn.Module):
 
         batch_size = len(arguments_2d)
         argument_hat_2d = [{'events': {}} for _ in range(batch_size)]
-        for (i, st, ed, event_type_str, e_st, e_ed, entity_type), a_label in zip(argument_keys,
-                                                                                 argument_hat_1d.cpu().numpy()):
+        for (i, st, ed, event_type_str, e_st, e_ed, entity_type), a_label in zip(argument_keys, argument_hat_1d.cpu().numpy()):
             if a_label == argument2idx[NONE]:
                 continue
             if (st, ed, event_type_str) not in argument_hat_2d[i]['events']:

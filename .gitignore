@@ -12,3 +12,5 @@ stanford-corenlp-full-2018-10-05.zip
 stanford-corenlp-full-2018-10-05/
 
 logdir/
+
+latest_model.pt
